@@ -19,12 +19,13 @@
 
 ## GitHub Pages への公開
 
-このリポジトリには GitHub Actions による Pages デプロイ設定があります。
+このリポジトリには GitHub Actions による Pages の有効化・デプロイ設定があります。
 
-1. リポジトリの **Settings → Pages** を開く
-2. **Build and deployment → Source** を **GitHub Actions** に設定
-3. `main` ブランチへ push（または Actions の **Deploy to GitHub Pages** を手動実行）
-4. Actions のデプロイ完了後、上記の URL で公開を確認
+1. `main` ブランチへ push（または Actions の **Deploy to GitHub Pages** を手動実行）
+2. ワークフローが GitHub Pages を有効化して公開します
+3. Actions のデプロイ完了後、上記の URL で公開を確認
+
+リポジトリや Organization の設定でワークフローによる Pages の有効化が許可されていない場合は、リポジトリの **Settings → Pages → Build and deployment → Source** で **GitHub Actions** を選択してから、もう一度ワークフローを実行してください。
 
 ## ローカルで確認
 
