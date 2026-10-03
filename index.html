@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>短距離得点板</title>
+<meta name="description" content="運動会の短距離走の順位を入力して、チーム別・学年別に得点を集計するアプリです。">
+<meta name="theme-color" content="#0d0d1a">
+<meta property="og:type" content="website">
+<meta property="og:title" content="運動会 短距離走得点板">
+<meta property="og:description" content="短距離走の順位を入力して、チーム別・学年別に得点を集計します。">
+<meta property="og:url" content="https://kawaitomohiro.github.io/tankyori-tokutenban/">
+<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+<style>
+/* ===== ダークモード（デフォルト） ===== */
+:root {
+  --gold: #ffd60a;
+  --bg: #0d0d1a;
+  --bg2: #141428;
+  --bg3: #1c1c38;
+  --border: #2a2a50;
+  --text: #f0f0f0;
+  --dim: #888;
+  --green: #2ec4b6;
+  --orange: #ff9f1c;
+  --skip-bg: #1a1a2e;
+  --skip-border: #333;
+  --hi-color: #bbb;
+  --no-hist: #444;
+  --grand-bg: linear-gradient(135deg,#1a1a2e,#1c1c38);
+  --submit-disabled-bg: #2a2a2a;
+  --submit-disabled-color: #555;
+  --header-bg: linear-gradient(135deg,#0d0d1a,#1c1c38);
+  --mode: dark;
+}
+
+/* ===== ライトモード ===== */
+body.light {
+  --gold: #b86f00;
+  --bg: #eef1f7;
+  --bg2: #ffffff;
+  --bg3: #dde3ef;
+  --border: #b8c0d0;
+  --text: #1a1a2e;
+  --dim: #5a6070;
+  --green: #0f8f87;
+  --orange: #d06b00;
+  --skip-bg: #dde3ef;
+  --skip-border: #aaa;
+  --hi-color: #444;
+  --no-hist: #999;
+  --grand-bg: linear-gradient(135deg,#fff8e0,#fff0c0);
+  --submit-disabled-bg: #ccc;
+  --submit-disabled-color: #999;
+  --header-bg: linear-gradient(135deg,#ffffff,#e8ecf6);
+  --mode: light;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 60px;
+  max-width: 600px;
+  margin: 0 auto;
+  transition: background 0.25s, color 0.25s;
+}
+
+/* ヘッダー */
+.header {
+  background: var(--header-bg);
+  border-bottom: 2px solid var(--gold);
+  padding: 10px 12px 0;
+  position: sticky; top: 0; z-index: 100;
+  transition: background 0.25s;
+}
+.header-top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.app-title { font-size: 1.05em; font-weight: 900; color: var(--gold); letter-spacing: 0.06em; }
+.header-btns { display: flex; gap: 6px; }
+.hbtn {
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--dim); padding: 5px 10px; border-radius: 8px;
+  font-size: 0.78em; cursor: pointer; transition: all 0.2s;
+}
+.hbtn:active { opacity: 0.7; }
+
+.mode-btn {
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--dim); padding: 5px 10px; border-radius: 8px;
+  font-size: 0.85em; cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; gap: 4px;
+}
+.mode-btn:active { opacity: 0.7; }
+
+/* 学年タブ */
+.grade-tabs {
+  display: flex; overflow-x: auto; scrollbar-width: none;
+}
+.grade-tabs::-webkit-scrollbar { display: none; }
+.gtab {
+  padding: 9px 14px; font-size: 0.82em; font-weight: bold;
+  color: var(--dim); cursor: pointer;
+  border-bottom: 3px solid transparent; white-space: nowrap; flex-shrink: 0;
+  transition: all 0.15s;
+}
+.gtab.active { color: var(--gold); border-bottom-color: var(--gold); }
+.gtab.all-tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+/* スコアボード */
+.scoreboard {
+  display: grid;
+  gap: 10px; padding: 12px 12px 6px;
+}
+.score-card {
+  border-radius: 16px; padding: 14px 8px; text-align: center;
+  border-width: 1px; border-style: solid;
+  transition: background 0.25s;
+}
+.sc-name { font-size: 0.92em; font-weight: 900; letter-spacing: 0.06em; margin-bottom: 2px; word-break: break-all; }
+.sc-num { font-size: 2.6em; font-weight: 900; line-height: 1; }
+.sc-unit { font-size: 0.72em; color: var(--dim); margin-top: 2px; }
+
+.race-info { text-align: center; font-size: 0.8em; color: var(--dim); padding: 2px 0 8px; }
+.race-info b { color: var(--gold); }
+
+/* レイアウトバー */
+.layout-bar { display: flex; align-items: center; gap: 8px; padding: 4px 12px 8px; flex-wrap: wrap; }
+.layout-label { font-size: 0.75em; color: var(--dim); }
+.lbtn {
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--dim); padding: 5px 10px; border-radius: 8px;
+  font-size: 0.78em; cursor: pointer; transition: all 0.15s;
+}
+.lbtn.active { border-color: var(--green); color: var(--green); font-weight: bold; }
+.lbtn:active { opacity: 0.7; }
+
+/* 縦並びグリッド */
+.vgrid { display: flex; flex-direction: column; gap: 8px; padding: 0 12px; margin-bottom: 10px; }
+.vrow {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 14px; padding: 10px 12px;
+  display: flex; align-items: center; gap: 10px; transition: background 0.25s, opacity 0.2s;
+}
+.vrow.skipped { opacity: 0.45; }
+.vrow.disabled { opacity: 0.35; background: var(--skip-bg); }
+.rank-lbl-v { font-size: 1.4em; font-weight: 900; color: var(--gold); min-width: 48px; text-align: center; }
+.rank-pts-v { font-size: 0.8em; color: var(--dim); min-width: 30px; text-align: center; }
+.tbtns-v { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
+
+/* 横並びグリッド */
+.hgrid-wrap { padding: 0 12px; margin-bottom: 10px; }
+.hgrid { display: grid; gap: 8px; }
+.hcol {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 14px; padding: 10px 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  transition: background 0.25s, opacity 0.2s;
+}
+.hcol.skipped { opacity: 0.45; }
+.hcol.disabled { opacity: 0.35; background: var(--skip-bg); }
+.rank-lbl-h { font-size: 1.15em; font-weight: 900; color: var(--gold); }
+.rank-pts-h { font-size: 0.7em; color: var(--dim); }
+.tbtns-h { display: flex; flex-direction: column; gap: 5px; width: 100%; }
+
+/* チームボタン */
+.tbtn {
+  border: 2px solid transparent; border-radius: 10px;
+  font-weight: 900; cursor: pointer; transition: all 0.12s; opacity: 0.35;
+  color: #fff;
+}
+.tbtn:active { transform: scale(0.92); }
+.tbtn.sel { opacity: 1; transform: scale(1.04); }
+.tbtn-v { flex: 1 1 0; min-width: 56px; padding: 13px 4px; font-size: 0.92em; }
+.tbtn-h { width: 100%; padding: 9px 2px; font-size: 0.78em; }
+.tbtn:disabled { opacity: 0.2; cursor: not-allowed; }
+
+/* チーム人数バッジ（同着で同チーム複数人のとき） */
+.tbtn-count {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 0.82em;
+  font-weight: 900;
+  background: rgba(0,0,0,0.32);
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 8px;
+  vertical-align: middle;
+  line-height: 1.3;
+}
+body.light .tbtn-count {
+  background: rgba(255,255,255,0.6);
+  color: #111;
+}
+.mbtn .tbtn-count {
+  font-size: 0.78em;
+  padding: 0 5px;
+}
+.hi-team-count {
+  font-weight: 900;
+  margin-left: 1px;
+}
+
+/* 同着ボタン */
+.tbtn-tied-v {
+  padding: 10px 8px; font-size: 0.78em; background: var(--skip-bg);
+  color: var(--orange); border: 1px solid var(--orange); border-radius: 8px;
+  cursor: pointer; white-space: nowrap; transition: all 0.2s;
+  font-weight: bold;
+}
+.tbtn-tied-h {
+  width: 100%; padding: 7px 2px; font-size: 0.7em; background: var(--skip-bg);
+  color: var(--orange); border: 1px solid var(--orange); border-radius: 8px;
+  cursor: pointer; transition: all 0.2s;
+  font-weight: bold;
+}
+.tbtn-tied-v:active, .tbtn-tied-h:active { opacity: 0.7; }
+.tbtn-tied-v.sel, .tbtn-tied-h.sel {
+  background: var(--orange); color: #fff;
+  box-shadow: 0 0 10px rgba(255,159,28,0.5);
+}
+.tbtn-tied-v:disabled, .tbtn-tied-h:disabled { opacity: 0.25; cursor: not-allowed; }
+
+/* 除くボタン */
+.tbtn-skip-v {
+  padding: 10px; font-size: 0.78em; background: var(--skip-bg);
+  color: var(--dim); border: 1px dashed var(--skip-border); border-radius: 8px;
+  cursor: pointer; white-space: nowrap; transition: background 0.25s;
+}
+.tbtn-skip-h {
+  width: 100%; padding: 7px 2px; font-size: 0.7em; background: var(--skip-bg);
+  color: var(--dim); border: 1px dashed var(--skip-border); border-radius: 8px;
+  cursor: pointer; transition: background 0.25s;
+}
+.tbtn-skip-v:active, .tbtn-skip-h:active { opacity: 0.6; }
+.tbtn-skip-v.sel, .tbtn-skip-h.sel { opacity: 1; border-style: solid; }
+.tbtn-skip-v:disabled, .tbtn-skip-h:disabled { opacity: 0.25; cursor: not-allowed; }
+
+/* アクションボタン */
+.actions { display: flex; gap: 8px; padding: 0 12px; margin-bottom: 12px; }
+.btn-submit {
+  flex: 2; padding: 18px; border: none; border-radius: 14px;
+  font-size: 1.1em; font-weight: 900; cursor: pointer; letter-spacing: 0.06em;
+  background: linear-gradient(135deg, var(--orange), #e67e22);
+  color: #fff; box-shadow: 0 4px 20px rgba(255,159,28,0.3);
+  transition: all 0.15s;
+}
+.btn-submit:active { transform: scale(0.97); }
+.btn-submit:disabled {
+  background: var(--submit-disabled-bg);
+  box-shadow: none; color: var(--submit-disabled-color); cursor: default;
+}
+.btn-undo {
+  flex: 1; padding: 18px; border: 1px solid var(--border);
+  border-radius: 14px; font-size: 0.9em; font-weight: bold;
+  background: var(--bg3); color: var(--dim); cursor: pointer; transition: all 0.15s;
+}
+.btn-undo:active { transform: scale(0.97); }
+.btn-undo:disabled { opacity: 0.35; cursor: default; }
+
+/* 履歴 */
+.history-section { padding: 0 12px; }
+.section-title {
+  font-size: 0.78em; color: var(--dim);
+  margin-bottom: 6px; letter-spacing: 0.05em;
+}
+.history-wrap {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden; margin-bottom: 10px;
+  transition: background 0.25s;
+}
+.history-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px; border-bottom: 1px solid var(--border);
+  font-size: 0.78em; color: var(--hi-color); flex-wrap: wrap;
+}
+.history-item:last-child { border-bottom: none; }
+.hi-race { color: var(--gold); font-weight: bold; min-width: 36px; }
+.hi-detail { flex: 1; line-height: 1.6; min-width: 0; }
+.hi-pts { white-space: normal; font-size: 0.88em; line-height: 1.5; }
+.hi-team { font-weight: bold; margin-right: 4px; }
+.hi-tied-tag { color: var(--orange); font-size: 0.85em; margin-left: 2px; font-weight: bold; }
+.hi-edit-btn {
+  background: var(--bg2); border: 1px solid var(--border);
+  color: var(--dim); padding: 4px 9px; border-radius: 6px;
+  font-size: 0.78em; cursor: pointer; white-space: nowrap;
+}
+.hi-edit-btn:active { opacity: 0.6; }
+.no-history { padding: 14px; text-align: center; font-size: 0.82em; color: var(--no-hist); }
+
+/* 合計ビュー */
+.total-view { padding: 12px; }
+.grand-total {
+  background: var(--grand-bg);
+  border: 2px solid var(--gold); border-radius: 16px;
+  padding: 16px; text-align: center; margin-bottom: 14px;
+  transition: background 0.25s;
+}
+.gt-title { font-size: 0.85em; color: var(--gold); margin-bottom: 10px; font-weight: bold; }
+.gt-scores { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; }
+.gt-item { text-align: center; min-width: 80px; }
+.gt-name { font-size: 0.85em; font-weight: bold; margin-bottom: 4px; }
+.gt-num { font-size: 2em; font-weight: 900; }
+.gt-winner { margin-top: 12px; font-size: 1em; font-weight: 900; }
+.grade-rows { display: flex; flex-direction: column; gap: 8px; }
+.grade-summary-row {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 14px;
+  display: flex; align-items: center; gap: 12px; transition: background 0.25s;
+}
+.gsrow-name { font-size: 0.88em; font-weight: bold; min-width: 72px; color: var(--dim); }
+.gsrow-bar { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.bar-row { display: flex; align-items: center; gap: 6px; }
+.bar-lbl { font-size: 0.7em; min-width: 36px; text-align: right; font-weight: bold; }
+.bar-track { flex: 1; height: 10px; background: var(--bg2); border-radius: 5px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 5px; transition: width 0.4s; min-width: 4px; }
+.bar-score { font-size: 0.78em; font-weight: bold; min-width: 28px; }
+
+/* 設定オーバーレイ */
+.settings-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55); z-index: 300;
+}
+.settings-overlay.open { display: block; }
+.settings-panel {
+  position: fixed; top: 0; right: -110%; width: min(360px, 94vw);
+  height: 100vh; overflow-y: auto;
+  background: var(--bg2); border-left: 1px solid var(--border);
+  padding: 20px 16px; z-index: 301;
+  transition: right 0.28s cubic-bezier(0.4,0,0.2,1), background 0.25s;
+}
+.settings-panel.open { right: 0; }
+.settings-panel h3 { font-size: 0.95em; color: var(--gold); margin-bottom: 12px; font-weight: bold; }
+.settings-panel h4 {
+  font-size: 0.85em; color: var(--text); margin: 16px 0 8px;
+  font-weight: bold; padding-top: 12px; border-top: 1px solid var(--border);
+}
+.setting-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.setting-row label { font-size: 0.85em; color: var(--text); min-width: 90px; }
+.num-input {
+  width: 70px; padding: 7px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--bg3); color: var(--text);
+  font-size: 1em; text-align: center;
+}
+.pts-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 4px; }
+.pts-item { display: flex; align-items: center; gap: 5px; font-size: 0.8em; color: var(--text); }
+.pts-item input {
+  width: 48px; padding: 5px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--bg3); color: var(--text);
+  text-align: center; font-size: 0.95em;
+}
+.grade-names-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-top: 4px; }
+.gname-item input {
+  width: 100%; padding: 6px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--bg3); color: var(--text);
+  font-size: 0.88em; text-align: center;
+}
+
+/* チーム設定 */
+.team-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.team-row {
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 10px; padding: 8px 10px;
+}
+.team-row-main {
+  display: flex; align-items: center; gap: 8px;
+}
+.team-row .team-num {
+  font-size: 0.78em; color: var(--dim); min-width: 24px; font-weight: bold;
+}
+.team-row input[type="text"] {
+  flex: 1; padding: 7px 8px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--bg2); color: var(--text);
+  font-size: 0.92em;
+}
+.team-row input[type="color"] {
+  width: 38px; height: 34px; border-radius: 7px;
+  border: 1px solid var(--border); background: transparent;
+  cursor: pointer; padding: 2px;
+}
+/* 色パレット（丸ボタン） */
+.team-color-palette {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 4px 0 2px 32px;
+}
+.color-swatch {
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid var(--border);
+  cursor: pointer; padding: 0;
+  transition: transform 0.1s;
+  position: relative;
+}
+.color-swatch:active { transform: scale(0.88); }
+.color-swatch.selected {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px var(--bg3), 0 0 0 4px var(--gold);
+}
+.team-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.preset-btn {
+  font-size: 0.75em; padding: 6px 10px; border-radius: 8px;
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text); cursor: pointer;
+}
+.preset-btn:active { opacity: 0.7; }
+
+.btn-apply {
+  width: 100%; margin-top: 16px; padding: 12px; border: none;
+  border-radius: 10px; font-size: 0.95em; font-weight: 900; cursor: pointer;
+  background: var(--green); color: #fff;
+}
+.btn-apply:active { opacity: 0.8; }
+.btn-reset-all {
+  width: 100%; margin-top: 8px; padding: 12px;
+  border: 1px solid #e63946; border-radius: 10px; font-size: 0.9em; font-weight: bold;
+  cursor: pointer; background: #3a0a0f; color: #ff6b7a;
+}
+body.light .btn-reset-all { background: #ffe0e3; color: #c1121f; }
+.btn-reset-all:active { opacity: 0.8; }
+.settings-close {
+  background: none; border: none; color: var(--dim);
+  font-size: 1.3em; cursor: pointer; padding: 4px 8px;
+}
+
+/* 編集モーダル */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65); z-index: 400;
+  align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 18px; width: 100%; max-width: 400px;
+  padding: 18px; max-height: 85vh; overflow-y: auto;
+  transition: background 0.25s;
+}
+.modal-title { font-size: 0.95em; font-weight: 900; color: var(--gold); margin-bottom: 14px; }
+.modal-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 10px; padding: 8px 10px;
+  background: var(--bg3); border-radius: 10px; transition: background 0.25s, opacity 0.2s;
+  flex-wrap: wrap;
+}
+.modal-row.disabled { opacity: 0.35; background: var(--skip-bg); }
+.modal-rank { font-size: 1em; font-weight: bold; color: var(--gold); min-width: 44px; }
+.modal-pts { font-size: 0.78em; color: var(--dim); min-width: 28px; }
+.modal-btns { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; min-width: 0; }
+.mbtn {
+  flex: 1 1 0; min-width: 50px; padding: 10px 4px; border: 2px solid transparent;
+  border-radius: 9px; font-weight: 900; font-size: 0.85em;
+  cursor: pointer; opacity: 0.4; transition: all 0.12s;
+  color: #fff;
+}
+.mbtn:active { transform: scale(0.93); }
+.mbtn.sel { opacity: 1; }
+.mbtn:disabled { opacity: 0.25; cursor: not-allowed; }
+.mbtn-skip { background: var(--bg2); color: var(--dim); border: 1px dashed var(--border); opacity: 0.6; }
+.mbtn-skip.sel { opacity: 1; border-color: var(--dim); }
+.mbtn-tied {
+  background: var(--bg2); color: var(--orange);
+  border: 1px dashed var(--orange); opacity: 0.7; font-weight: bold;
+}
+.mbtn-tied.sel {
+  opacity: 1; background: var(--orange); color: #fff;
+  border-style: solid;
+}
+.modal-actions { display: flex; gap: 8px; margin-top: 14px; }
+.modal-save {
+  flex: 2; padding: 14px; border: none; border-radius: 10px;
+  background: var(--green); color: #fff; font-weight: 900; font-size: 1em; cursor: pointer;
+}
+.modal-save:active { opacity: 0.8; }
+.modal-cancel {
+  flex: 1; padding: 14px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--bg3); color: var(--dim); font-size: 0.9em; cursor: pointer;
+}
+.modal-cancel:active { opacity: 0.8; }
+.modal-delete {
+  flex: 1; padding: 14px; border: 1px solid #e63946; border-radius: 10px;
+  background: #3a0a0f; color: #ff6b7a; font-size: 0.9em; cursor: pointer;
+}
+body.light .modal-delete { background: #ffe0e3; color: #c1121f; }
+.modal-delete:active { opacity: 0.8; }
+
+/* トースト */
+.toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--green); color: #fff;
+  padding: 12px 24px; border-radius: 30px;
+  font-size: 0.9em; font-weight: 900;
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  z-index: 999; white-space: nowrap; pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.error { background: #e63946; }
+</style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<div class="header">
+  <div class="header-top">
+    <div class="app-title">短距離得点板</div>
+    <div class="header-btns">
+      <button class="mode-btn" id="modeBtn" onclick="toggleMode()">ライト</button>
+      <button class="hbtn" onclick="toggleSettings()">設定</button>
+    </div>
+  </div>
+  <div class="grade-tabs" id="gradeTabs"></div>
+</div>
+
+<div id="mainContent"></div>
+
+<!-- 設定オーバーレイ -->
+<div class="settings-overlay" id="settingsOverlay" onclick="toggleSettings()"></div>
+<div class="settings-panel" id="settingsPanel">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+    <h3 style="margin:0;">設定</h3>
+    <button class="settings-close" onclick="toggleSettings()">×</button>
+  </div>
+
+  <h4 style="margin-top:0;border-top:none;padding-top:0;">チーム設定</h4>
+  <div class="setting-row">
+    <label>チーム数：</label>
+    <input type="number" class="num-input" id="cfgTeamCount" min="2" max="6" value="2" oninput="rebuildTeamList()">
+  </div>
+  <div class="team-list" id="teamList"></div>
+  <div class="team-presets">
+    <button class="preset-btn" onclick="applyPreset('rw')">赤白</button>
+    <button class="preset-btn" onclick="applyPreset('rwb')">赤白青</button>
+    <button class="preset-btn" onclick="applyPreset('rwby')">赤白青黄</button>
+    <button class="preset-btn" onclick="applyPreset('rwbyg')">赤白青黄緑</button>
+    <button class="preset-btn" onclick="applyPreset('rwbygp')">赤白青黄緑紫</button>
+  </div>
+
+  <h4>競技設定</h4>
+  <div class="setting-row">
+    <label>コース数：</label>
+    <input type="number" class="num-input" id="cfgCourses" min="2" max="10" value="6" oninput="buildPtsGrid()">
+  </div>
+  <div>
+    <div style="font-size:0.82em;color:var(--dim);margin-bottom:6px;">各順位の得点：</div>
+    <div class="pts-grid" id="ptsGrid"></div>
+  </div>
+
+  <h4>学年設定</h4>
+  <div style="font-size:0.82em;color:var(--dim);margin-bottom:6px;">学年名：</div>
+  <div class="grade-names-grid" id="gradeNamesGrid"></div>
+
+  <button class="btn-apply" onclick="applySettings()">設定を反映</button>
+  <button class="btn-reset-all" id="btnResetAll">全データをリセット</button>
+</div>
+
+<!-- 編集モーダル -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle"></div>
+    <div id="modalBody"></div>
+    <div class="modal-actions">
+      <button class="modal-save" onclick="saveEdit()">保存</button>
+      <button class="modal-delete" onclick="deleteEntry()">削除</button>
+      <button class="modal-cancel" onclick="closeModal()">×</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== 状態 =====
+let courses    = 6;
+let points     = [6,5,4,3,2,1];
+let gradeNames = ['1年生','2年生','3年生','4年生','5年生','6年生'];
+let gradeData  = {};
+let currentGrade = 0;
+let layout     = 'horizontal';
+// selections[rank] = undefined | 'skip' | { tied: boolean, teams: [teamId,...] }
+let selections = {};
+let isLight    = false;
+
+// チーム定義: [{id, name, color}]
+let teams = [
+  { id: 't1', name: '赤組', color: '#e63946' },
+  { id: 't2', name: '白組', color: '#cccccc' }
+];
+
+let editGrade = null, editIndex = null, editSels = {};
+
+const STORAGE_KEY = 'tankyori_tokoten_v5';
+
+// プリセット
+const PRESETS = {
+  rw:    [['赤組','#e63946'],['白組','#cccccc']],
+  rwb:   [['赤組','#e63946'],['白組','#cccccc'],['青組','#3b82f6']],
+  rwby:  [['赤組','#e63946'],['白組','#cccccc'],['青組','#3b82f6'],['黄組','#fbbf24']],
+  rwbyg: [['赤組','#e63946'],['白組','#cccccc'],['青組','#3b82f6'],['黄組','#fbbf24'],['緑組','#22c55e']],
+  rwbygp:[['赤組','#e63946'],['白組','#cccccc'],['青組','#3b82f6'],['黄組','#fbbf24'],['緑組','#22c55e'],['紫組','#a855f7']]
+};
+
+// 色プリセットパレット
+const COLOR_PALETTE = [
+  { name:'赤',     hex:'#e63946' },
+  { name:'白',     hex:'#cccccc' },
+  { name:'青',     hex:'#3b82f6' },
+  { name:'黄',     hex:'#fbbf24' },
+  { name:'緑',     hex:'#22c55e' },
+  { name:'紫',     hex:'#a855f7' },
+  { name:'オレンジ', hex:'#f97316' },
+  { name:'桃',     hex:'#ec4899' },
+  { name:'水色',   hex:'#38bdf8' },
+  { name:'茶',     hex:'#92400e' },
+  { name:'紺',     hex:'#1e3a8a' },
+  { name:'深緑',   hex:'#166534' },
+  { name:'金',     hex:'#d4af37' },
+  { name:'銀',     hex:'#94a3b8' },
+  { name:'黒',     hex:'#1f2937' }
+];
+
+// ===== 色ヘルパー =====
+function hexToRgb(hex) {
+  hex = (hex||'#888888').replace('#','');
+  if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
+  const n = parseInt(hex,16);
+  return { r:(n>>16)&255, g:(n>>8)&255, b:n&255 };
+}
+function rgbToHex(r,g,b) {
+  const h = v => Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0');
+  return '#' + h(r) + h(g) + h(b);
+}
+function mixWithBlack(hex, ratio) {
+  const c = hexToRgb(hex);
+  return rgbToHex(c.r*(1-ratio), c.g*(1-ratio), c.b*(1-ratio));
+}
+function mixWithWhite(hex, ratio) {
+  const c = hexToRgb(hex);
+  return rgbToHex(c.r+(255-c.r)*ratio, c.g+(255-c.g)*ratio, c.b+(255-c.b)*ratio);
+}
+function contrastText(hex) {
+  const c = hexToRgb(hex);
+  const lum = (0.299*c.r + 0.587*c.g + 0.114*c.b)/255;
+  return lum > 0.6 ? '#111' : '#fff';
+}
+
+function cardStyle(color) {
+  if (isLight) {
+    const bgA = mixWithWhite(color, 0.75);
+    const bgB = mixWithWhite(color, 0.55);
+    return `background:linear-gradient(135deg,${bgA},${bgB});border-color:${color};`;
+  } else {
+    const bgA = mixWithBlack(color, 0.75);
+    const bgB = mixWithBlack(color, 0.55);
+    return `background:linear-gradient(135deg,${bgA},${bgB});border-color:${color};`;
+  }
+}
+function cardNameColor(color) {
+  return isLight ? mixWithBlack(color, 0.35) : mixWithWhite(color, 0.35);
+}
+function cardNumColor(color) {
+  return isLight ? mixWithBlack(color, 0.45) : '#fff';
+}
+function teamBtnStyle(color) {
+  const a = mixWithBlack(color, 0.15);
+  const b = mixWithWhite(color, 0.25);
+  const txt = contrastText(color);
+  return `background:linear-gradient(135deg,${a},${b});color:${txt};`;
+}
+function teamHiColor(color) {
+  return isLight ? mixWithBlack(color, 0.25) : mixWithWhite(color, 0.15);
+}
+
+// ===== 同着関連ヘルパー =====
+function isObjSel(s) {
+  return s && typeof s === 'object' && Array.isArray(s.teams);
+}
+
+// 同着で複数選ばれた順位の次の順位を無効化
+function getDisabledRanks(sels) {
+  sels = sels || selections;
+  const disabled = new Set();
+  for (let i = 0; i < courses; i++) {
+    if (disabled.has(i)) continue;
+    const s = sels[i];
+    if (isObjSel(s) && s.tied && s.teams.length > 1) {
+      for (let j = 1; j < s.teams.length; j++) {
+        if (i + j < courses) disabled.add(i + j);
+      }
+    }
+  }
+  return disabled;
+}
+
+// 無効化された順位の選択をクリア（連鎖的に処理）
+function cleanupDisabledSelections(sels) {
+  sels = sels || selections;
+  // 何度か繰り返して安定するまで
+  for (let pass = 0; pass < 5; pass++) {
+    const disabled = getDisabledRanks(sels);
+    let changed = false;
+    disabled.forEach(rank => {
+      if (sels[rank] !== undefined) {
+        sels[rank] = undefined;
+        changed = true;
+      }
+    });
+    if (!changed) break;
+  }
+}
+
+// ===== 履歴データのマイグレーション（古い形式→新形式） =====
+function migrateHistory(history) {
+  if (!Array.isArray(history)) return [];
+  return history.map(h => {
+    if (h && Array.isArray(h.detail)) {
+      h.detail = h.detail.map(d => {
+        // 古い形式: {rank, team, pt} → 新: {rank, teams, pt, tied}
+        if (d && d.team !== undefined && d.teams === undefined) {
+          return {
+            rank: d.rank,
+            teams: d.team === 'skip' ? [] : [d.team],
+            pt: d.pt || 0,
+            tied: false
+          };
+        }
+        return d;
+      });
+    }
+    return h;
+  });
+}
+
+// ===== 保存 =====
+function saveData() {
+  try {
+    const payload = { courses, points, gradeNames, gradeData, isLight, layout, teams };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch(e) {}
+}
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    if (d.courses)    courses    = d.courses;
+    if (d.points)     points     = d.points;
+    if (d.gradeNames) gradeNames = d.gradeNames;
+    if (d.gradeData)  gradeData  = d.gradeData;
+    if (d.layout)     layout     = d.layout;
+    if (d.teams && Array.isArray(d.teams) && d.teams.length >= 2) teams = d.teams;
+    if (d.isLight !== undefined) {
+      isLight = d.isLight;
+      document.body.classList.toggle('light', isLight);
+      const btn = document.getElementById('modeBtn');
+      if (btn) btn.textContent = isLight ? 'ダーク' : 'ライト';
+    }
+    return true;
+  } catch(e) { return false; }
+}
+
+// ===== 初期化 =====
+function initGradeData() {
+  gradeNames.forEach((_,i) => {
+    if (!gradeData[i]) gradeData[i] = { scores: {}, raceCount: 0, history: [] };
+    if (!gradeData[i].scores) gradeData[i].scores = {};
+    teams.forEach(t => {
+      if (gradeData[i].scores[t.id] === undefined) gradeData[i].scores[t.id] = 0;
+    });
+    gradeData[i].history = migrateHistory(gradeData[i].history);
+  });
+}
+
+function init() {
+  loadData();
+  initGradeData();
+  renderTabs();
+  renderMain();
+  buildSettingsUI();
+  document.getElementById('btnResetAll').onclick = function() {
+    if (confirm('全学年の得点をリセットしますか？\nこの操作は取り消せません。')) {
+      gradeData = {};
+      initGradeData();
+      selections = {};
+      currentGrade = 0;
+      saveData();
+      closeSettings();
+      renderTabs();
+      renderMain();
+      showToast('全データをリセットしました');
+    }
+  };
+}
+
+// ===== ダーク/ライト =====
+function toggleMode() {
+  isLight = !isLight;
+  document.body.classList.toggle('light', isLight);
+  document.getElementById('modeBtn').textContent = isLight ? 'ダーク' : 'ライト';
+  saveData();
+  renderMain();
+}
+
+// ===== タブ =====
+function renderTabs() {
+  const el = document.getElementById('gradeTabs');
+  el.innerHTML = '';
+  gradeNames.forEach((name, i) => {
+    const t = document.createElement('div');
+    t.className = 'gtab' + (currentGrade === i ? ' active' : '');
+    t.textContent = name;
+    t.onclick = () => { currentGrade = i; selections = {}; renderTabs(); renderMain(); };
+    el.appendChild(t);
+  });
+  const all = document.createElement('div');
+  all.className = 'gtab all-tab' + (currentGrade === 'all' ? ' active' : '');
+  all.textContent = '合計';
+  all.onclick = () => { currentGrade = 'all'; renderTabs(); renderMain(); };
+  el.appendChild(all);
+}
+
+// ===== メイン =====
+function renderMain() {
+  const mc = document.getElementById('mainContent');
+  if (currentGrade === 'all') { mc.innerHTML = totalViewHTML(); return; }
+  const gd = gradeData[currentGrade];
+  const hasAny = Object.keys(selections).some(k => {
+    const s = selections[k];
+    return isObjSel(s) && s.teams.length > 0;
+  });
+  mc.innerHTML =
+    scoreboardHTML(gd) +
+    `<div class="race-info">第 <b>${gd.raceCount}</b> 組 終了</div>` +
+    layoutBarHTML() +
+    rankGridHTML() +
+    `<div class="actions">
+      <button class="btn-submit" ${hasAny?'':'disabled'} onclick="submitRace()">この組を送信</button>
+      <button class="btn-undo" ${gd.history.length>0?'':'disabled'} onclick="undoLast()">取り消し</button>
+    </div>` +
+    historySection(gd);
+}
+
+function scoreboardHTML(gd) {
+  const cols = teams.length <= 2 ? 2 : teams.length === 3 ? 3 : teams.length === 4 ? 2 : 3;
+  const cards = teams.map(t => {
+    const sc = gd.scores[t.id] || 0;
+    return `<div class="score-card" style="${cardStyle(t.color)}">
+      <div class="sc-name" style="color:${cardNameColor(t.color)}">${escapeHtml(t.name)}</div>
+      <div class="sc-num" style="color:${cardNumColor(t.color)}">${sc}</div>
+      <div class="sc-unit">点</div>
+    </div>`;
+  }).join('');
+  return `<div class="scoreboard" style="grid-template-columns:repeat(${cols},1fr)">${cards}</div>`;
+}
+
+function layoutBarHTML() {
+  return `<div class="layout-bar">
+    <div class="layout-label">並び：</div>
+    <button class="lbtn ${layout==='horizontal'?'active':''}" onclick="setLayout('horizontal')">横</button>
+    <button class="lbtn ${layout==='vertical'?'active':''}" onclick="setLayout('vertical')">縦</button>
+  </div>`;
+}
+function setLayout(l) { layout = l; saveData(); renderMain(); }
+
+function rankGridHTML() {
+  return layout === 'vertical' ? verticalGrid() : horizontalGrid();
+}
+
+function teamButtonsHTML(rankIdx, btnClass) {
+  const s = selections[rankIdx];
+  const disabled = getDisabledRanks();
+  const isDisabled = disabled.has(rankIdx);
+  const isObj = isObjSel(s);
+  const isTied = isObj && s.tied;
+  const isSkip = s === 'skip';
+  const teamsSel = isObj ? s.teams : [];
+
+  const teamBtns = teams.map(t => {
+    const count = teamsSel.filter(id => id === t.id).length;
+    const teamSel = count > 0;
+    const badge = count > 1 ? `<span class="tbtn-count">×${count}</span>` : '';
+    return `<button class="tbtn ${btnClass}${teamSel?' sel':''}"
+       style="${teamBtnStyle(t.color)}${teamSel?'border-color:'+t.color+';box-shadow:0 0 12px '+t.color+'66;':''}"
+       ${isDisabled?'disabled':''}
+       onclick="sel(${rankIdx},'${t.id}')">${escapeHtml(t.name)}${badge}</button>`;
+  }).join('');
+
+  const tiedClass = btnClass === 'tbtn-v' ? 'tbtn-tied-v' : 'tbtn-tied-h';
+  const tiedBtn = `<button class="${tiedClass}${isTied?' sel':''}" ${isDisabled?'disabled':''}
+     onclick="toggleTied(${rankIdx})">同着</button>`;
+
+  const skipClass = btnClass === 'tbtn-v' ? 'tbtn-skip-v' : 'tbtn-skip-h';
+  const skipBtn = `<button class="${skipClass}${isSkip?' sel':''}" ${isDisabled?'disabled':''}
+     onclick="sel(${rankIdx},'skip')">除く</button>`;
+
+  return teamBtns + tiedBtn + skipBtn;
+}
+
+function verticalGrid() {
+  const disabled = getDisabledRanks();
+  let h = '<div class="vgrid">';
+  for (let i = 0; i < courses; i++) {
+    const s = selections[i];
+    const isSkip = s === 'skip';
+    const isDisabled = disabled.has(i);
+    h += `<div class="vrow${isSkip?' skipped':''}${isDisabled?' disabled':''}">
+      <div class="rank-lbl-v">${i+1}位</div>
+      <div class="rank-pts-v">${isDisabled?'—':(points[i]||0)+'点'}</div>
+      <div class="tbtns-v">${teamButtonsHTML(i,'tbtn-v')}</div>
+    </div>`;
+  }
+  return h + '</div>';
+}
+
+function horizontalGrid() {
+  const cols = courses <= 3 ? courses : courses <= 6 ? 3 : 4;
+  const disabled = getDisabledRanks();
+  let h = `<div class="hgrid-wrap"><div class="hgrid" style="grid-template-columns:repeat(${cols},1fr)">`;
+  for (let i = 0; i < courses; i++) {
+    const s = selections[i];
+    const isSkip = s === 'skip';
+    const isDisabled = disabled.has(i);
+    h += `<div class="hcol${isSkip?' skipped':''}${isDisabled?' disabled':''}">
+      <div class="rank-lbl-h">${i+1}位</div>
+      <div class="rank-pts-h">${isDisabled?'—':(points[i]||0)+'点'}</div>
+      <div class="tbtns-h">${teamButtonsHTML(i,'tbtn-h')}</div>
+    </div>`;
+  }
+  return h + '</div></div>';
+}
+
+// ===== 選択ハンドラ =====
+function sel(rank, team) {
+  const disabled = getDisabledRanks();
+  if (disabled.has(rank)) return;
+
+  let s = selections[rank];
+
+  if (team === 'skip') {
+    selections[rank] = (s === 'skip') ? undefined : 'skip';
+  } else {
+    if (s === 'skip' || s === undefined) {
+      selections[rank] = { tied: false, teams: [team] };
+    } else if (isObjSel(s)) {
+      if (s.tied) {
+        // 同着モード：押すたびに人数+1。最大に達したら、そのチームだけ0に戻す（ループ）。
+        // 残り使えるスロット数 = courses - rank（自分の順位を含む残り）
+        const remainingSlots = courses - rank;
+        if (s.teams.length < remainingSlots) {
+          // 余裕あり → そのチームを1人追加
+          s.teams.push(team);
+        } else {
+          // 最大に達している → 押したチームだけ全削除（他チームは残す）
+          s.teams = s.teams.filter(t => t !== team);
+        }
+        if (s.teams.length === 0) {
+          selections[rank] = undefined;
+        } else {
+          selections[rank] = s;
+        }
+      } else {
+        // 通常モード：同じチームなら解除、違うチームなら置き換え
+        if (s.teams[0] === team) {
+          selections[rank] = undefined;
+        } else {
+          selections[rank] = { tied: false, teams: [team] };
+        }
+      }
+    }
+  }
+  cleanupDisabledSelections();
+  renderMain();
+}
+
+function toggleTied(rank) {
+  const disabled = getDisabledRanks();
+  if (disabled.has(rank)) return;
+
+  let s = selections[rank];
+
+  if (s === 'skip' || s === undefined) {
+    // 同着モードON（チームはまだ未選択）
+    selections[rank] = { tied: true, teams: [] };
+  } else if (isObjSel(s)) {
+    if (s.tied) {
+      // 同着モードOFF → 選択もクリア
+      selections[rank] = undefined;
+    } else {
+      // 通常→同着に切替（既存選択は維持）
+      s.tied = true;
+      selections[rank] = s;
+    }
+  }
+  cleanupDisabledSelections();
+  renderMain();
+}
+
+function getTeam(id) {
+  return teams.find(t => t.id === id);
+}
+
+function submitRace() {
+  cleanupDisabledSelections();
+  const disabled = getDisabledRanks();
+
+  const hasAny = Object.keys(selections).some(k => {
+    const s = selections[k];
+    return isObjSel(s) && s.teams.length > 0;
+  });
+  if (!hasAny) { showToast('少なくとも1つ選んでください', true); return; }
+
+  const gd = gradeData[currentGrade];
+  const teamPts = {};
+  teams.forEach(t => teamPts[t.id] = 0);
+  const detail = [];
+
+  for (let i = 0; i < courses; i++) {
+    const s = selections[i];
+    if (disabled.has(i)) {
+      detail.push({ rank: i+1, teams: [], pt: 0, tied: false, blocked: true });
+      continue;
+    }
+    if (s === 'skip' || !isObjSel(s) || s.teams.length === 0) {
+      detail.push({ rank: i+1, teams: [], pt: 0, tied: false });
+      continue;
+    }
+    const pt = points[i] || 0;
+    s.teams.forEach(tid => {
+      if (teamPts[tid] !== undefined) teamPts[tid] += pt;
+    });
+    detail.push({
+      rank: i+1,
+      teams: s.teams.slice(),
+      pt,
+      tied: s.tied && s.teams.length > 1
+    });
+  }
+
+  teams.forEach(t => { gd.scores[t.id] = (gd.scores[t.id]||0) + (teamPts[t.id]||0); });
+  gd.raceCount++;
+  gd.history.unshift({ race:gd.raceCount, detail, teamPts });
+  selections = {};
+  saveData();
+  const msg = teams.map(t => {
+    const p = teamPts[t.id]||0;
+    return p > 0 ? `${t.name}+${p}` : null;
+  }).filter(Boolean).join(' ');
+  showToast(`第${gd.raceCount}組 送信！ ${msg}`);
+  renderMain();
+}
+
+function undoLast() {
+  const gd = gradeData[currentGrade];
+  if (!gd.history.length) return;
+  const last = gd.history.shift();
+  teams.forEach(t => {
+    gd.scores[t.id] = (gd.scores[t.id]||0) - ((last.teamPts && last.teamPts[t.id])||0);
+  });
+  gd.raceCount--;
+  selections = {};
+  saveData();
+  showToast(`第${last.race}組の送信を取り消しました`);
+  renderMain();
+}
+
+function historySection(gd) {
+  let items = '';
+  if (!gd.history.length) {
+    items = '<div class="no-history">まだ記録がありません</div>';
+  } else {
+    items = gd.history.map((h,idx) => {
+      const det = h.detail.filter(d => d.teams && d.teams.length > 0).map(d => {
+        // 同じチームIDをまとめてカウント（出現順を維持）
+        const counts = {};
+        const order = [];
+        d.teams.forEach(tid => {
+          if (counts[tid] === undefined) { order.push(tid); counts[tid] = 0; }
+          counts[tid]++;
+        });
+        const teamSpans = order.map(tid => {
+          const cnt = counts[tid];
+          const tm = getTeam(tid);
+          const c = tm ? teamHiColor(tm.color) : 'var(--dim)';
+          const nm = tm ? tm.name : tid;
+          const x = cnt > 1 ? `<span class="hi-team-count">×${cnt}</span>` : '';
+          return `<span class="hi-team" style="color:${c}">${escapeHtml(nm)}${x}</span>`;
+        }).join('・');
+        const tag = d.tied ? '<span class="hi-tied-tag">(同着)</span>' : '';
+        return `${d.rank}位:${teamSpans}${tag}`;
+      }).join(' ');
+      const pts = teams.map(t => {
+        const p = (h.teamPts && h.teamPts[t.id])||0;
+        return `<span class="hi-team" style="color:${teamHiColor(t.color)}">${escapeHtml(t.name)}+${p}</span>`;
+      }).join(' ');
+      return `<div class="history-item">
+        <div class="hi-race">第${h.race}組</div>
+        <div class="hi-detail">${det}</div>
+        <div class="hi-pts">${pts}</div>
+        <button class="hi-edit-btn" onclick="openEditModal(${currentGrade},${idx})">編集</button>
+      </div>`;
+    }).join('');
+  }
+  return `<div class="history-section">
+    <div class="section-title">入力履歴（${escapeHtml(gradeNames[currentGrade])}）</div>
+    <div class="history-wrap">${items}</div>
+  </div>`;
+}
+
+// ===== 編集モーダル =====
+function openEditModal(gradeIdx, histIdx) {
+  editGrade = gradeIdx; editIndex = histIdx;
+  const entry = gradeData[gradeIdx].history[histIdx];
+  editSels = {};
+  entry.detail.forEach(d => {
+    if (d.blocked) return; // 同着で無効化された行はスキップ
+    if (d.teams && d.teams.length > 0) {
+      editSels[d.rank-1] = { tied: !!d.tied, teams: d.teams.slice() };
+    }
+    // skip / 無入力は何もしない
+  });
+  document.getElementById('modalTitle').textContent = `第${entry.race}組 を編集`;
+  renderModalBody();
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function renderModalBody() {
+  const disabled = getDisabledRanks(editSels);
+  let h = '';
+  for (let i = 0; i < courses; i++) {
+    const s = editSels[i];
+    const isObj = isObjSel(s);
+    const isTied = isObj && s.tied;
+    const isSkip = s === 'skip';
+    const teamsSel = isObj ? s.teams : [];
+    const isDisabled = disabled.has(i);
+
+    const teamBtns = teams.map(t => {
+      const count = teamsSel.filter(id => id === t.id).length;
+      const teamSel = count > 0;
+      const badge = count > 1 ? `<span class="tbtn-count">×${count}</span>` : '';
+      return `<button class="mbtn${teamSel?' sel':''}"
+        style="${teamBtnStyle(t.color)}${teamSel?'border-color:'+t.color+';':''}"
+        ${isDisabled?'disabled':''}
+        onclick="editSel(${i},'${t.id}');renderModalBody()">${escapeHtml(t.name)}${badge}</button>`;
+    }).join('');
+
+    const tiedBtn = `<button class="mbtn mbtn-tied${isTied?' sel':''}" ${isDisabled?'disabled':''}
+      onclick="editToggleTied(${i});renderModalBody()">同着</button>`;
+
+    const skipBtn = `<button class="mbtn mbtn-skip${isSkip?' sel':''}" ${isDisabled?'disabled':''}
+      onclick="editSel(${i},'skip');renderModalBody()">除く</button>`;
+
+    h += `<div class="modal-row${isDisabled?' disabled':''}">
+      <div class="modal-rank">${i+1}位</div>
+      <div class="modal-pts">${isDisabled?'—':(points[i]||0)+'点'}</div>
+      <div class="modal-btns">${teamBtns}${tiedBtn}${skipBtn}</div>
+    </div>`;
+  }
+  document.getElementById('modalBody').innerHTML = h;
+}
+
+function editSel(rank, team) {
+  const disabled = getDisabledRanks(editSels);
+  if (disabled.has(rank)) return;
+
+  let s = editSels[rank];
+
+  if (team === 'skip') {
+    editSels[rank] = (s === 'skip') ? undefined : 'skip';
+  } else {
+    if (s === 'skip' || s === undefined) {
+      editSels[rank] = { tied: false, teams: [team] };
+    } else if (isObjSel(s)) {
+      if (s.tied) {
+        // 同着モード：押すたびに+1、最大でループして0に戻す
+        const remainingSlots = courses - rank;
+        if (s.teams.length < remainingSlots) {
+          s.teams.push(team);
+        } else {
+          s.teams = s.teams.filter(t => t !== team);
+        }
+        if (s.teams.length === 0) {
+          editSels[rank] = undefined;
+        } else {
+          editSels[rank] = s;
+        }
+      } else {
+        if (s.teams[0] === team) {
+          editSels[rank] = undefined;
+        } else {
+          editSels[rank] = { tied: false, teams: [team] };
+        }
+      }
+    }
+  }
+  cleanupDisabledSelections(editSels);
+}
+
+function editToggleTied(rank) {
+  const disabled = getDisabledRanks(editSels);
+  if (disabled.has(rank)) return;
+
+  let s = editSels[rank];
+  if (s === 'skip' || s === undefined) {
+    editSels[rank] = { tied: true, teams: [] };
+  } else if (isObjSel(s)) {
+    if (s.tied) {
+      editSels[rank] = undefined;
+    } else {
+      s.tied = true;
+      editSels[rank] = s;
+    }
+  }
+  cleanupDisabledSelections(editSels);
+}
+
+function saveEdit() {
+  cleanupDisabledSelections(editSels);
+  const disabled = getDisabledRanks(editSels);
+  const gd = gradeData[editGrade];
+  const old = gd.history[editIndex];
+
+  // 旧値をスコアから引く
+  teams.forEach(t => {
+    gd.scores[t.id] = (gd.scores[t.id]||0) - ((old.teamPts && old.teamPts[t.id])||0);
+  });
+
+  // 新値を計算
+  const newTeamPts = {};
+  teams.forEach(t => newTeamPts[t.id] = 0);
+  const newDetail = [];
+  for (let i = 0; i < courses; i++) {
+    const s = editSels[i];
+    if (disabled.has(i)) {
+      newDetail.push({ rank: i+1, teams: [], pt: 0, tied: false, blocked: true });
+      continue;
+    }
+    if (s === 'skip' || !isObjSel(s) || s.teams.length === 0) {
+      newDetail.push({ rank: i+1, teams: [], pt: 0, tied: false });
+      continue;
+    }
+    const pt = points[i] || 0;
+    s.teams.forEach(tid => {
+      if (newTeamPts[tid] !== undefined) newTeamPts[tid] += pt;
+    });
+    newDetail.push({
+      rank: i+1,
+      teams: s.teams.slice(),
+      pt,
+      tied: s.tied && s.teams.length > 1
+    });
+  }
+  teams.forEach(t => { gd.scores[t.id] += newTeamPts[t.id]; });
+  gd.history[editIndex] = { ...old, detail: newDetail, teamPts: newTeamPts };
+  saveData();
+  closeModal(); showToast('編集を保存しました'); renderMain();
+}
+
+function deleteEntry() {
+  if (!confirm('この組の記録を削除しますか？')) return;
+  const gd = gradeData[editGrade];
+  const old = gd.history[editIndex];
+  teams.forEach(t => {
+    gd.scores[t.id] = (gd.scores[t.id]||0) - ((old.teamPts && old.teamPts[t.id])||0);
+  });
+  gd.raceCount--;
+  gd.history.splice(editIndex, 1);
+  gd.history.forEach((h,i) => { h.race = gd.history.length - i; });
+  saveData();
+  closeModal(); showToast('記録を削除しました'); renderMain();
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  editGrade = editIndex = null; editSels = {};
+}
+
+// ===== 合計ビュー =====
+function totalViewHTML() {
+  const grand = {};
+  teams.forEach(t => grand[t.id] = 0);
+  gradeNames.forEach((_,i) => {
+    teams.forEach(t => { grand[t.id] += (gradeData[i].scores[t.id]||0); });
+  });
+  let maxScore = -1, leaders = [];
+  teams.forEach(t => {
+    if (grand[t.id] > maxScore) { maxScore = grand[t.id]; leaders = [t]; }
+    else if (grand[t.id] === maxScore) leaders.push(t);
+  });
+  const isAllZero = maxScore === 0;
+  let winnerText, winnerColor;
+  if (isAllZero) { winnerText = 'まだ得点がありません'; winnerColor = 'var(--dim)'; }
+  else if (leaders.length === 1) {
+    winnerText = `${leaders[0].name} リード！`;
+    winnerColor = leaders[0].color;
+  } else {
+    winnerText = `${leaders.map(t=>t.name).join('・')} 同点！`;
+    winnerColor = 'var(--gold)';
+  }
+
+  const gtItems = teams.map(t =>
+    `<div class="gt-item">
+      <div class="gt-name" style="color:${cardNameColor(t.color)}">${escapeHtml(t.name)}</div>
+      <div class="gt-num" style="color:${isLight?mixWithBlack(t.color,0.4):'#fff'}">${grand[t.id]||0}</div>
+    </div>`
+  ).join('');
+
+  const rows = gradeNames.map((name,i) => {
+    const gd = gradeData[i];
+    const tot = teams.reduce((s,t) => s + (gd.scores[t.id]||0), 0);
+    const bars = teams.map(t => {
+      const sc = gd.scores[t.id]||0;
+      const pct = tot > 0 ? Math.round(sc/tot*100) : (100/teams.length);
+      const c = t.color;
+      const fillBg = `linear-gradient(90deg,${mixWithBlack(c,0.15)},${c})`;
+      return `<div class="bar-row">
+        <div class="bar-lbl" style="color:${teamHiColor(c)}">${escapeHtml(t.name)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${fillBg}"></div></div>
+        <div class="bar-score" style="color:${teamHiColor(c)}">${sc}</div>
+      </div>`;
+    }).join('');
+    return `<div class="grade-summary-row">
+      <div class="gsrow-name">${escapeHtml(name)}<br><span style="font-size:0.72em;color:var(--dim);font-weight:normal">${gd.raceCount}組</span></div>
+      <div class="gsrow-bar">${bars}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="total-view">
+    <div class="grand-total">
+      <div class="gt-title">総合得点</div>
+      <div class="gt-scores">${gtItems}</div>
+      <div class="gt-winner" style="color:${winnerColor}">${winnerText}</div>
+    </div>
+    <div style="font-size:0.82em;color:var(--dim);margin-bottom:8px;font-weight:bold;">学年別得点</div>
+    <div class="grade-rows">${rows}</div>
+  </div>`;
+}
+
+// ===== 設定 =====
+function buildSettingsUI() {
+  document.getElementById('cfgTeamCount').value = teams.length;
+  document.getElementById('cfgCourses').value = courses;
+  rebuildTeamList();
+  buildPtsGrid();
+  document.getElementById('gradeNamesGrid').innerHTML = gradeNames.map((name,i) =>
+    `<div class="gname-item"><input type="text" id="gname${i}" value="${escapeHtml(name)}"></div>`
+  ).join('');
+}
+
+function rebuildTeamList() {
+  let n = parseInt(document.getElementById('cfgTeamCount').value);
+  if (isNaN(n) || n < 2) n = 2;
+  if (n > 6) n = 6;
+  const list = document.getElementById('teamList');
+  const currentInputs = readTeamInputs();
+  list.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const existing = currentInputs[i] || teams[i] || { name:`チーム${i+1}`, color: defaultTeamColor(i) };
+    const curHex = (existing.color || '').toLowerCase();
+    const swatches = COLOR_PALETTE.map(c => {
+      const sel = c.hex.toLowerCase() === curHex ? ' selected' : '';
+      return `<button type="button" class="color-swatch${sel}" style="background:${c.hex}" title="${c.name}" onclick="selectTeamColor(${i}, '${c.hex}')"></button>`;
+    }).join('');
+    list.innerHTML += `<div class="team-row">
+      <div class="team-row-main">
+        <div class="team-num">${i+1}</div>
+        <input type="text" id="tname${i}" value="${escapeHtml(existing.name)}" placeholder="チーム名">
+        <input type="color" id="tcolor${i}" value="${existing.color}" oninput="updateSwatchSelection(${i})">
+      </div>
+      <div class="team-color-palette" id="palette${i}">${swatches}</div>
+    </div>`;
+  }
+}
+
+function selectTeamColor(i, hex) {
+  const c = document.getElementById('tcolor'+i);
+  if (c) c.value = hex;
+  updateSwatchSelection(i);
+}
+
+function updateSwatchSelection(i) {
+  const c = document.getElementById('tcolor'+i);
+  const palette = document.getElementById('palette'+i);
+  if (!c || !palette) return;
+  const cur = (c.value || '').toLowerCase();
+  const buttons = palette.querySelectorAll('.color-swatch');
+  buttons.forEach((btn, idx) => {
+    const hex = (COLOR_PALETTE[idx] && COLOR_PALETTE[idx].hex || '').toLowerCase();
+    if (hex === cur) btn.classList.add('selected');
+    else btn.classList.remove('selected');
+  });
+}
+
+function readTeamInputs() {
+  const result = [];
+  for (let i = 0; i < 6; i++) {
+    const n = document.getElementById('tname'+i);
+    const c = document.getElementById('tcolor'+i);
+    if (!n || !c) continue;
+    result.push({ name: n.value, color: c.value });
+  }
+  return result;
+}
+
+function defaultTeamColor(i) {
+  const palette = ['#e63946','#cccccc','#3b82f6','#fbbf24','#22c55e','#a855f7'];
+  return palette[i] || '#888888';
+}
+
+function applyPreset(key) {
+  const p = PRESETS[key];
+  if (!p) return;
+  document.getElementById('cfgTeamCount').value = p.length;
+  rebuildTeamList();
+  p.forEach((row, i) => {
+    const n = document.getElementById('tname'+i);
+    const c = document.getElementById('tcolor'+i);
+    if (n) n.value = row[0];
+    if (c) c.value = row[1];
+    updateSwatchSelection(i);
+  });
+}
+
+function buildPtsGrid() {
+  const n = parseInt(document.getElementById('cfgCourses').value) || courses;
+  const pg = document.getElementById('ptsGrid');
+  pg.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    pg.innerHTML += `<div class="pts-item"><span>${i+1}位:</span>
+      <input type="number" id="pt${i}" min="0" max="99" value="${points[i]!==undefined?points[i]:Math.max(0,n-i)}">
+    </div>`;
+  }
+}
+
+function toggleSettings() {
+  const p = document.getElementById('settingsPanel');
+  const o = document.getElementById('settingsOverlay');
+  if (p.classList.contains('open')) {
+    closeSettings();
+  } else {
+    buildSettingsUI();
+    p.classList.add('open');
+    o.classList.add('open');
+  }
+}
+
+function closeSettings() {
+  document.getElementById('settingsPanel').classList.remove('open');
+  document.getElementById('settingsOverlay').classList.remove('open');
+}
+
+function applySettings() {
+  const tc = parseInt(document.getElementById('cfgTeamCount').value);
+  if (isNaN(tc) || tc < 2 || tc > 6) { showToast('チーム数は2〜6で入力してください', true); return; }
+  const newTeams = [];
+  for (let i = 0; i < tc; i++) {
+    const nameEl = document.getElementById('tname'+i);
+    const colorEl = document.getElementById('tcolor'+i);
+    const name = (nameEl && nameEl.value.trim()) || `チーム${i+1}`;
+    const color = (colorEl && colorEl.value) || defaultTeamColor(i);
+    newTeams.push({ id: 't'+(i+1), name, color });
+  }
+  const newC = parseInt(document.getElementById('cfgCourses').value);
+  if (isNaN(newC) || newC < 2 || newC > 10) { showToast('コース数は2〜10で入力してください', true); return; }
+  const newPts = [];
+  for (let i = 0; i < newC; i++) {
+    const v = parseInt(document.getElementById('pt'+i).value);
+    newPts.push(isNaN(v) ? 0 : v);
+  }
+  const newNames = [];
+  for (let i = 0; i < 6; i++) {
+    newNames.push(document.getElementById('gname'+i).value || `${i+1}年生`);
+  }
+
+  const oldTeamIds = teams.map(t => t.id).sort().join(',');
+  const newTeamIds = newTeams.map(t => t.id).sort().join(',');
+  if (oldTeamIds !== newTeamIds) {
+    if (!confirm('チーム構成を変更すると、過去の得点記録はリセットされます。続行しますか？')) return;
+    gradeData = {};
+  }
+
+  teams = newTeams;
+  courses = newC;
+  points = newPts;
+  gradeNames = newNames;
+  selections = {};
+  initGradeData();
+  saveData();
+  closeSettings();
+  renderTabs();
+  renderMain();
+  showToast('設定を反映しました！');
+}
+
+// ===== トースト =====
+function showToast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast'+(isError?' error':'');
+  t.classList.remove('show');
+  void t.offsetWidth;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+// ===== 文字エスケープ =====
+function escapeHtml(s) {
+  return String(s||'').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+init();
+</script>
+</body>
+</html>
